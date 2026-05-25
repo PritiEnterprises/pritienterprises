@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth Module ──────────────────────────────────────────────────────
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  name         String   @default("Admin")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ─── Employees Module ───────────────────────────────────────────────
+model Employee {
+  id            String   @id @default(cuid())
+  employeeCode  String   @unique
+  name          String
+  phone         String?
+  role          String   @default("Mason")
+  dailyWage     Float
+  overtimeRate  Float    @default(0)
+  address       String?
+  isActive      Boolean  @default(true)
+  joinDate      DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  attendances   Attendance[]
+  advances      EmployeeAdvance[]
+  payrollLines  PayrollLine[]
+}
+
+// ─── Projects / Sites Module ──────────────────────────────────────────
+model Project {
+  id              String   @id @default(cuid())
+  projectCode     String   @unique
+  name            String
+  siteAddress     String?
+  builderName     String
+  builderPhone    String?
+  contractAmount  Float    @default(0)
+  status          String   @default("ACTIVE")
+  startDate       DateTime?
+  expectedEndDate DateTime?
+  actualEndDate   DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  attendances     Attendance[]
+  builderPayments BuilderPayment[]
+}
+
+// ─── Attendance Module ───────────────────────────────────────────────
+model Attendance {
+  id            String   @id @default(cuid())
+  employeeId    String
+  projectId     String?
+  date          DateTime
+  dayType       String   @default("FULL_DAY")
+  overtimeHours Float    @default(0)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  project  Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@unique([employeeId, date])
+  @@index([date])
+}
+
+// ─── Employee Advances Module ────────────────────────────────────────
+model EmployeeAdvance {
+  id            String   @id @default(cuid())
+  employeeId    String
+  amount        Float
+  date          DateTime @default(now())
+  notes         String?
+  status        String   @default("PENDING")
+  payrollLineId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  employee    Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  payrollLine PayrollLine? @relation(fields: [payrollLineId], references: [id], onDelete: SetNull)
+
+  @@index([employeeId, date])
+}
+
+// ─── Payroll / Salary Module ───────────────────────────────────────────
+model SalaryPeriod {
+  id          String    @id @default(cuid())
+  label       String
+  startDate   DateTime
+  endDate     DateTime
+  status      String    @default("DRAFT")
+  finalizedAt DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  payrollLines PayrollLine[]
+
+  @@unique([startDate, endDate])
+}
+
+model PayrollLine {
+  id                String   @id @default(cuid())
+  salaryPeriodId    String
+  employeeId        String
+  fullDays          Int      @default(0)
+  halfDays          Int      @default(0)
+  overtimeHours     Float    @default(0)
+  dailyWageSnapshot Float
+  overtimeRateSnap  Float
+  grossEarnings     Float    @default(0)
+  advancesDeducted  Float    @default(0)
+  otherDeductions   Float    @default(0)
+  netPay            Float    @default(0)
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  salaryPeriod SalaryPeriod      @relation(fields: [salaryPeriodId], references: [id], onDelete: Cascade)
+  employee     Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  advances     EmployeeAdvance[]
+
+  @@unique([salaryPeriodId, employeeId])
+}
+
+// ─── Builder Payments Module ───────────────────────────────────────────
+model BuilderPayment {
+  id          String   @id @default(cuid())
+  projectId   String
+  paymentType String
+  amount      Float
+  date        DateTime @default(now())
+  reference   String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, date])
+}

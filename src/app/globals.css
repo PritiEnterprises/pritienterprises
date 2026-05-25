@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg: #f1f5f9;
+    --color-sidebar: #0f172a;
+    --color-accent: #d97706;
+  }
+
+  body {
+    @apply bg-surface text-slate-800 antialiased;
+    font-family: var(--font-sans), "Segoe UI", "Nirmala UI", "Noto Sans Devanagari", sans-serif;
+  }
+
+  ::selection {
+    @apply bg-brand-200 text-brand-900;
+  }
+}
+
+@layer components {
+  .page-container {
+    @apply mx-auto max-w-[1400px];
+  }
+
+  .glass-card {
+    @apply rounded-2xl border border-white/80 bg-white/90 shadow-card backdrop-blur-sm;
+  }
+
+  .nav-active-indicator {
+    @apply absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-brand-400;
+  }
+}
+
+@media print {
+  aside,
+  .no-print {
+    display: none !important;
+  }
+  main {
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+}
