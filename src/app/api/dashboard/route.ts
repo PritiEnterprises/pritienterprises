@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { prisma } from "@/lib/prisma";
 import { calculateProjectSettlement } from "@/modules/projects/settlement";
 import { NextResponse } from "next/server";
