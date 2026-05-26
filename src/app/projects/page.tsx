@@ -59,6 +59,22 @@ export default function ProjectsPage() {
     load();
   };
 
+  const updateProjectStatus = async (
+    id: string,
+    status: string
+  ) => {
+    try {
+      await apiFetch(`/api/projects/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+
+      load();
+    } catch (err) {
+      alert("Failed to update project status");
+    }
+  };
+
   const statusColor = (s: string) => {
     if (s === "ACTIVE") return "success";
     if (s === "COMPLETED") return "info";
@@ -110,9 +126,43 @@ export default function ProjectsPage() {
                 <Badge variant={statusColor(p.status)}>{p.status}</Badge>
               </td>
               <td className="px-4 py-3">
-                <Link href={`/projects/${p.id}`} className="text-sm text-brand-600 hover:underline">
-                  Details →
-                </Link>
+                <div className="flex flex-wrap items-center gap-3 text-xs">
+
+                  <button
+                    onClick={() =>
+                      updateProjectStatus(p.id, "COMPLETED")
+                    }
+                    className="text-emerald-600 hover:underline"
+                  >
+                    Complete
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      updateProjectStatus(p.id, "ON_HOLD")
+                    }
+                    className="text-yellow-600 hover:underline"
+                  >
+                    Hold
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      updateProjectStatus(p.id, "ACTIVE")
+                    }
+                    className="text-blue-600 hover:underline"
+                  >
+                    Activate
+                  </button>
+
+                  <Link
+                    href={`/projects/${p.id}`}
+                    className="text-brand-600 hover:underline"
+                  >
+                    Details →
+                  </Link>
+
+                </div>
               </td>
             </tr>
           ))

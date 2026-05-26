@@ -82,6 +82,30 @@ export default function EmployeesPage() {
     load();
   };
 
+  const deleteEmployee = async (id: string) => {
+    const confirmed = confirm(
+      "Permanently delete this employee? This action cannot be undone."
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await apiFetch(`/api/employees/${id}/permanent`, {
+        method: "DELETE",
+      });
+
+      load();
+    } catch (err) {
+      if (err instanceof Error) {
+        alert(err.message);
+      } else {
+        alert(
+          "Cannot delete employee with existing records. Deactivate instead."
+        );
+      }
+    }
+  };
+
   const visible = showInactive ? employees : employees.filter((e) => e.isActive);
 
   return (
@@ -150,15 +174,30 @@ export default function EmployeesPage() {
                   </Badge>
                 </td>
                 <td className="px-4 py-3">
-                  {emp.isActive ? (
-                    <button onClick={() => deactivate(emp.id)} className="text-xs text-red-600 hover:underline">
-                      {t("deactivate")}
+                  <div className="flex items-center gap-3">
+                    {emp.isActive ? (
+                      <button
+                        onClick={() => deactivate(emp.id)}
+                        className="text-xs text-yellow-600 hover:underline"
+                      >
+                        {t("deactivate")}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => reactivate(emp.id)}
+                        className="text-xs text-emerald-600 hover:underline"
+                      >
+                        {t("reactivate")}
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => deleteEmployee(emp.id)}
+                      className="text-xs text-red-600 hover:underline"
+                    >
+                      Delete
                     </button>
-                  ) : (
-                    <button onClick={() => reactivate(emp.id)} className="text-xs text-emerald-600 hover:underline">
-                      {t("reactivate")}
-                    </button>
-                  )}
+                  </div>
                 </td>
               </tr>
             ))

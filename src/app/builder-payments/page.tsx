@@ -17,6 +17,7 @@ interface Project {
   name: string;
   projectCode: string;
   builderName: string;
+  status: string;
 }
 
 interface Payment {
@@ -33,6 +34,7 @@ export default function BuilderPaymentsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     projectId: "",
     paymentType: "ADVANCE",
@@ -44,22 +46,82 @@ export default function BuilderPaymentsPage() {
 
   const load = () => {
     apiFetch<Payment[]>("/api/builder-payments").then(setPayments);
-    apiFetch<Project[]>("/api/projects").then(setProjects);
+    apiFetch<Project[]>("/api/projects").then((data) =>
+      setProjects(
+        data.filter((p) => p.status === "ACTIVE")
+      )
+    );
   };
 
   useEffect(() => { load(); }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await apiFetch("/api/builder-payments", {
-      method: "POST",
-      body: JSON.stringify({
-        ...form,
-        amount: parseFloat(form.amount),
-      }),
+
+    const payload = {
+      ...form,
+      amount: parseFloat(form.amount),
+    };
+
+    if (editingId) {
+      await apiFetch(`/api/builder-payments/${editingId}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+    } else {
+      await apiFetch("/api/builder-payments", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    }
+
+    setEditingId(null);
+
+    setForm({
+      projectId: "",
+      paymentType: "ADVANCE",
+      amount: "",
+      date: toDateInputValue(new Date()),
+      reference: "",
+      notes: "",
     });
+
     setShowForm(false);
+
     load();
+  };
+
+  const editPayment = (payment: Payment) => {
+    setEditingId(payment.id);
+
+    setForm({
+      projectId: payment.project.id,
+      paymentType: payment.paymentType,
+      amount: String(payment.amount),
+      date: toDateInputValue(payment.date),
+      reference: payment.reference || "",
+      notes: payment.notes || "",
+    });
+
+    setShowForm(true);
+  };
+
+  const deletePayment = async (id: string) => {
+    const confirmed = confirm(
+      "Delete this payment permanently?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await apiFetch(`/api/builder-payments/${id}`, {
+        method: "DELETE",
+      });
+
+      load();
+    } catch {
+      alert("Failed to delete payment");
+    }
   };
 
   const typeVariant = (t: string) => {
@@ -82,7 +144,14 @@ export default function BuilderPaymentsPage() {
       />
 
       {showForm && (
-        <Card className="mb-6" title="New Builder Payment">
+        <Card
+          className="mb-6"
+          title={
+            editingId
+              ? "Edit Builder Payment"
+              : "New Builder Payment"
+          }
+        >
           <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
             <Select
               label="Project"
@@ -112,14 +181,27 @@ export default function BuilderPaymentsPage() {
             <Input label="Date" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
             <Input label="Reference (Cheque/RTGS)" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} />
             <Input label="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-            <Button type="submit" className="sm:col-span-2">Save Payment</Button>
+            <Button type="submit" className="sm:col-span-2">
+              {editingId ? "Update Payment" : "Save Payment"}
+            </Button>
           </form>
         </Card>
       )}
 
-      <DataTable headers={["Date", "Project", "Builder", "Type", "Amount", "Reference", "Notes"]}>
+      <DataTable
+        headers={[
+          "Date",
+          "Project",
+          "Builder",
+          "Type",
+          "Amount",
+          "Reference",
+          "Notes",
+          "Actions",
+        ]}
+      >
         {payments.length === 0 ? (
-          <EmptyRow colSpan={7} />
+          <EmptyRow colSpan={8} />
         ) : (
           payments.map((p) => (
             <tr key={p.id}>
@@ -132,6 +214,25 @@ export default function BuilderPaymentsPage() {
               <td className="px-4 py-3 font-semibold text-emerald-700">{formatCurrency(p.amount)}</td>
               <td className="px-4 py-3">{p.reference || "—"}</td>
               <td className="px-4 py-3 text-slate-500">{p.notes || "—"}</td>
+              <td className="px-4 py-3">
+                <div className="flex items-center gap-3 text-xs">
+
+                  <button
+                    onClick={() => editPayment(p)}
+                    className="text-blue-600 hover:underline"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    onClick={() => deletePayment(p.id)}
+                    className="text-red-600 hover:underline"
+                  >
+                    Delete
+                  </button>
+
+                </div>
+              </td>
             </tr>
           ))
         )}
