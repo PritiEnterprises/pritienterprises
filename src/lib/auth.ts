@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 
 const COOKIE_NAME = "priti_session";
-const SESSION_DAYS = 7;
+const SESSION_DAYS = 1;
 
 export interface SessionPayload {
   userId: string;

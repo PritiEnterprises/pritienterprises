@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { AppShell } from "@/components/layout/AppShell";
+import { SessionGuard } from "@/components/SessionGuard";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -25,6 +26,7 @@ export default function RootLayout({
     <html lang="hi" suppressHydrationWarning>
       <body className={`${jakarta.variable} font-sans`}>
         <Providers>
+          <SessionGuard />
           <AppShell>{children}</AppShell>
         </Providers>
       </body>
