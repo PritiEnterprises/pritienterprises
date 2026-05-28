@@ -50,14 +50,13 @@ export async function getSession(): Promise<SessionPayload | null> {
   }
 }
 
-export function sessionCookieOptions(maxAge = 60 * 60 * 24 * SESSION_DAYS) {
+export function sessionCookieOptions() {
   return {
     name: COOKIE_NAME,
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax" as const,
     path: "/",
-    maxAge,
   };
 }
 
