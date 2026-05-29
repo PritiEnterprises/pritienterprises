@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { apiFetch } from "@/lib/api";
 import { formatCurrency, formatDate, toDateInputValue } from "@/lib/utils";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 
 interface Project {
   id: string;
@@ -137,8 +137,31 @@ export default function BuilderPaymentsPage() {
         title="Builder Payments"
         description="Record advances, interim, and final payments from builders for settlement tracking"
         action={
-          <Button onClick={() => setShowForm(!showForm)}>
-            <Plus className="h-4 w-4" /> Record Payment
+          <Button
+            onClick={() => {
+              setShowForm(!showForm);
+
+              if (showForm) {
+                setEditingId(null);
+
+                setForm({
+                  projectId: "",
+                  paymentType: "ADVANCE",
+                  amount: "",
+                  date: toDateInputValue(new Date()),
+                  reference: "",
+                  notes: "",
+                });
+              }
+            }}
+          >
+            {showForm ? (
+              <X className="h-4 w-4" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+
+            {showForm ? "Cancel" : "Record Payment"}
           </Button>
         }
       />
