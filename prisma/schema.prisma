@@ -8,7 +8,6 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ─── Auth Module ──────────────────────────────────────────────────────
 model User {
   id           String   @id @default(cuid())
   username     String   @unique
@@ -18,48 +17,43 @@ model User {
   updatedAt    DateTime @updatedAt
 }
 
-// ─── Employees Module ───────────────────────────────────────────────
 model Employee {
-  id            String   @id @default(cuid())
-  employeeCode  String   @unique
-  name          String
-  phone         String?
-  role          String   @default("Mason")
-  dailyWage     Float
-  overtimeRate  Float    @default(0)
-  address       String?
-  isActive      Boolean  @default(true)
-  joinDate      DateTime @default(now())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  attendances   Attendance[]
-  advances      EmployeeAdvance[]
-  payrollLines  PayrollLine[]
+  id           String            @id @default(cuid())
+  employeeCode String            @unique
+  name         String
+  phone        String?
+  role         String            @default("Mason")
+  dailyWage    Float
+  overtimeRate Float             @default(0)
+  address      String?
+  isActive     Boolean           @default(true)
+  joinDate     DateTime          @default(now())
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  attendances  Attendance[]
+  advances     EmployeeAdvance[]
+  payrollLines PayrollLine[]
 }
 
-// ─── Projects / Sites Module ──────────────────────────────────────────
 model Project {
-  id              String   @id @default(cuid())
-  projectCode     String   @unique
+  id              String           @id @default(cuid())
+  projectCode     String           @unique
   name            String
   siteAddress     String?
   builderName     String
   builderPhone    String?
-  contractAmount  Float    @default(0)
-  status          String   @default("ACTIVE")
+  contractAmount  Float            @default(0)
+  status          String           @default("ACTIVE")
   startDate       DateTime?
   expectedEndDate DateTime?
   actualEndDate   DateTime?
   notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   attendances     Attendance[]
   builderPayments BuilderPayment[]
 }
 
-// ─── Attendance Module ───────────────────────────────────────────────
 model Attendance {
   id            String   @id @default(cuid())
   employeeId    String
@@ -70,78 +64,71 @@ model Attendance {
   notes         String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  project  Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  project       Project? @relation(fields: [projectId], references: [id])
 
   @@unique([employeeId, date])
   @@index([date])
 }
 
-// ─── Employee Advances Module ────────────────────────────────────────
 model EmployeeAdvance {
-  id            String   @id @default(cuid())
+  id            String       @id @default(cuid())
   employeeId    String
   amount        Float
-  date          DateTime @default(now())
+  date          DateTime     @default(now())
   notes         String?
-  status        String   @default("PENDING")
+  status        String       @default("PENDING")
   payrollLineId String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  employee    Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  payrollLine PayrollLine? @relation(fields: [payrollLineId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  employee      Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  payrollLine   PayrollLine? @relation(fields: [payrollLineId], references: [id])
 
   @@index([employeeId, date])
 }
 
-// ─── Payroll / Salary Module ───────────────────────────────────────────
 model SalaryPeriod {
-  id          String    @id @default(cuid())
-  label       String
-  startDate   DateTime
-  endDate     DateTime
-  status      String    @default("DRAFT")
-  finalizedAt DateTime?
-  notes       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
+  id           String        @id @default(cuid())
+  label        String
+  startDate    DateTime
+  endDate      DateTime
+  status       String        @default("DRAFT")
+  finalizedAt  DateTime?
+  notes        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   payrollLines PayrollLine[]
 
   @@unique([startDate, endDate])
 }
 
 model PayrollLine {
-  id                String   @id @default(cuid())
+  id                String            @id @default(cuid())
   salaryPeriodId    String
   employeeId        String
-  fullDays          Int      @default(0)
-  halfDays          Int      @default(0)
-  overtimeHours     Float    @default(0)
+  fullDays          Int               @default(0)
+  halfDays          Int               @default(0)
+  overtimeHours     Float             @default(0)
   dailyWageSnapshot Float
   overtimeRateSnap  Float
-  grossEarnings     Float    @default(0)
-  advancesDeducted  Float    @default(0)
-  otherDeductions   Float    @default(0)
-  netPay            Float    @default(0)
+  grossEarnings     Float             @default(0)
+  advancesDeducted  Float             @default(0)
+  otherDeductions   Float             @default(0)
+  netPay            Float             @default(0)
   notes             String?
-  paymentStatus String   @default("UNPAID")
-  paidAt        DateTime?
-  paymentMethod String?
-  paymentNotes  String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  salaryPeriod SalaryPeriod      @relation(fields: [salaryPeriodId], references: [id], onDelete: Cascade)
-  employee     Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  advances     EmployeeAdvance[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  paidAt            DateTime?
+  paymentMethod     String?
+  paymentNotes      String?
+  paymentStatus     String            @default("UNPAID")
+  advances          EmployeeAdvance[]
+  employee          Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  salaryPeriod      SalaryPeriod      @relation(fields: [salaryPeriodId], references: [id], onDelete: Cascade)
 
   @@unique([salaryPeriodId, employeeId])
 }
 
-// ─── Builder Payments Module ───────────────────────────────────────────
 model BuilderPayment {
   id          String   @id @default(cuid())
   projectId   String
@@ -152,8 +139,7 @@ model BuilderPayment {
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId, date])
 }

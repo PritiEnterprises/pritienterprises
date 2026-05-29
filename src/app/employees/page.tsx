@@ -138,14 +138,14 @@ export default function EmployeesPage() {
 
       {showForm && (
         <Card className="mb-6" title={t("addEmployee")}>
-          <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Input label={t("employeeCode")} name="employeeCode" required value={form.employeeCode} onChange={(e) => setForm({ ...form, employeeCode: e.target.value })} placeholder="EMP005" />
             <Input label={t("fullName")} name="name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             <Input label={t("phone")} name="phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             <Input label={t("role")} name="role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} />
             <Input label={t("dailyWage")} name="dailyWage" type="number" required min="1" value={form.dailyWage} onChange={(e) => setForm({ ...form, dailyWage: e.target.value })} />
             <Input label={t("overtimeRate")} name="overtimeRate" type="number" min="0" value={form.overtimeRate} onChange={(e) => setForm({ ...form, overtimeRate: e.target.value })} placeholder={t("otAuto")} />
-            <div className="sm:col-span-2 lg:col-span-3">
+            <div className="md:col-span-2 xl:col-span-3">
               <Button type="submit">{t("saveEmployee")}</Button>
             </div>
           </form>
@@ -174,7 +174,7 @@ export default function EmployeesPage() {
                   </Badge>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
                     {emp.isActive ? (
                       <button
                         onClick={() => deactivate(emp.id)}

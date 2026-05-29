@@ -96,7 +96,10 @@ export default function ProjectsPage() {
 
       {showForm && (
         <Card className="mb-6" title="New Project">
-          <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+          <form
+            onSubmit={submit}
+            className="grid grid-cols-1 gap-4 md:grid-cols-2"
+          >
             <Input label="Project Code" required value={form.projectCode} onChange={(e) => setForm({ ...form, projectCode: e.target.value })} />
             <Input label="Project Name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             <Input label="Site Address" value={form.siteAddress} onChange={(e) => setForm({ ...form, siteAddress: e.target.value })} />

@@ -152,7 +152,10 @@ export default function BuilderPaymentsPage() {
               : "New Builder Payment"
           }
         >
-          <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+          <form
+            onSubmit={submit}
+            className="grid grid-cols-1 gap-4 md:grid-cols-2"
+          >
             <Select
               label="Project"
               required
@@ -181,7 +184,7 @@ export default function BuilderPaymentsPage() {
             <Input label="Date" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
             <Input label="Reference (Cheque/RTGS)" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} />
             <Input label="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-            <Button type="submit" className="sm:col-span-2">
+            <Button type="submit" className="md:col-span-2">
               {editingId ? "Update Payment" : "Save Payment"}
             </Button>
           </form>
@@ -215,7 +218,7 @@ export default function BuilderPaymentsPage() {
               <td className="px-4 py-3">{p.reference || "—"}</td>
               <td className="px-4 py-3 text-slate-500">{p.notes || "—"}</td>
               <td className="px-4 py-3">
-                <div className="flex items-center gap-3 text-xs">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3 text-xs">
 
                   <button
                     onClick={() => editPayment(p)}

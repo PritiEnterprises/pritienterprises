@@ -93,7 +93,7 @@ export default function AdvancesPage() {
         }
       />
 
-      <div className="mb-4 flex gap-2">
+      <div className="mb-4 flex flex-wrap gap-2">
         {[
           { s: "PENDING", label: t("pending") },
           { s: "DEDUCTED", label: t("deducted") },
@@ -103,9 +103,8 @@ export default function AdvancesPage() {
           <button
             key={s || "all"}
             onClick={() => setFilter(s)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-              filter === s ? "bg-brand-600 text-white" : "bg-white border border-slate-200 text-slate-600"
-            }`}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${filter === s ? "bg-brand-600 text-white" : "bg-white border border-slate-200 text-slate-600"
+              }`}
           >
             {label}
           </button>
@@ -114,7 +113,10 @@ export default function AdvancesPage() {
 
       {showForm && (
         <Card className="mb-6" title="New Advance Payment">
-          <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+          <form
+            onSubmit={submit}
+            className="grid grid-cols-1 gap-4 md:grid-cols-2"
+          >
             <Select
               label="Employee"
               required
@@ -132,7 +134,11 @@ export default function AdvancesPage() {
             <Input label="Date" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
             <Input label="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Weekly advance" />
             {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
-            <Button type="submit">Save Advance</Button>
+            <div className="md:col-span-2">
+              <Button type="submit">
+                Save Advance
+              </Button>
+            </div>
           </form>
         </Card>
       )}

@@ -68,7 +68,7 @@ export default function ReportsPage() {
       <PageHeader title={t("reportsTitle")} description={t("reportsDesc")} />
 
       <Card className="mb-8" title={t("employeeSummary")}>
-        <div className="mb-4 flex flex-wrap items-end gap-4">
+        <div className="mb-4 flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end">
           <Input label={t("startDate")} type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           <Input label={t("endDate")} type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           <Button onClick={loadLedger} className="mb-0">{t("generate")}</Button>

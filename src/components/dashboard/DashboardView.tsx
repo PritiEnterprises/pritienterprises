@@ -55,7 +55,7 @@ export function DashboardView(props: DashboardViewProps) {
         }
       />
 
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label={t("activeEmployees")}
           value={String(props.activeEmployees)}
@@ -110,7 +110,7 @@ export function DashboardView(props: DashboardViewProps) {
               {props.projects.map((p) => (
                 <li
                   key={p.id}
-                  className="flex items-center justify-between rounded-lg border border-slate-100 p-3"
+                  className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between rounded-lg border border-slate-100 p-3"
                 >
                   <div>
                     <p className="font-medium text-slate-900">{p.name}</p>
@@ -139,7 +139,10 @@ export function DashboardView(props: DashboardViewProps) {
           ) : (
             <ul className="divide-y divide-slate-100">
               {props.recentPayments.map((pay) => (
-                <li key={pay.id} className="flex justify-between py-3 text-sm">
+                <li
+                  key={pay.id}
+                  className="flex flex-col gap-2 md:flex-row md:justify-between py-3 text-sm"
+                >
                   <div>
                     <p className="font-medium">{pay.project.name}</p>
                     <p className="text-xs text-slate-500">
@@ -158,7 +161,7 @@ export function DashboardView(props: DashboardViewProps) {
 
       {props.latestPayroll && (
         <Card className="mt-6" title={t("latestSalaryPeriod")}>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <span className="font-medium">{props.latestPayroll.label}</span>
             <Badge variant={props.latestPayroll.status === "FINALIZED" ? "success" : "warning"}>
               {props.latestPayroll.status === "FINALIZED" ? t("finalized") : t("draft")}

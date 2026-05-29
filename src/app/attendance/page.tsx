@@ -161,7 +161,7 @@ export default function AttendancePage() {
       )}
 
       <Card className="mb-6">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">{t("date")}</label>
             <input
@@ -212,13 +212,12 @@ export default function AttendancePage() {
                           key={dt}
                           type="button"
                           onClick={() => setEntry(emp.id, { dayType: dt })}
-                          className={`rounded px-2 py-1 text-xs font-medium ${
-                            entry.dayType === dt
-                              ? dt === "ABSENT"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-brand-100 text-brand-800"
-                              : "bg-slate-100 text-slate-600"
-                          }`}
+                          className={`rounded px-2 py-1 text-xs font-medium ${entry.dayType === dt
+                            ? dt === "ABSENT"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-brand-100 text-brand-800"
+                            : "bg-slate-100 text-slate-600"
+                            }`}
                         >
                           {dt === "FULL_DAY" ? t("fullDay") : dt === "HALF_DAY" ? t("halfDay") : t("off")}
                         </button>
