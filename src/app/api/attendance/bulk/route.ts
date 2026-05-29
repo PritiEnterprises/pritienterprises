@@ -6,7 +6,7 @@ import { z } from "zod";
 
 const entrySchema = z.object({
   employeeId: z.string(),
-  dayType: z.enum(["FULL_DAY", "HALF_DAY", "ABSENT"]).default("FULL_DAY"),
+  dayType: z.enum(["FULL_DAY", "HALF_DAY", "ABSENT"]),
   overtimeHours: z.number().min(0).default(0),
 });
 
@@ -21,6 +21,18 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = schema.parse(body);
     const date = startOfDay(parseDateInput(data.date));
+    const existingAttendance = await prisma.attendance.findFirst({
+      where: {
+        date,
+      },
+    });
+
+    if (existingAttendance) {
+      return apiError(
+        "Attendance for this date is already saved and locked.",
+        400
+      );
+    }
 
     const results = await prisma.$transaction(
       data.entries.map((entry) =>

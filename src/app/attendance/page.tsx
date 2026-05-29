@@ -7,7 +7,7 @@ import { Select } from "@/components/ui/Select";
 import { Card } from "@/components/ui/Card";
 import { apiFetch } from "@/lib/api";
 import { toDateInputValue } from "@/lib/utils";
-import { Save, Copy } from "lucide-react";
+import { Save } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/context";
 
 interface Employee {
@@ -23,7 +23,7 @@ interface Project {
   projectCode: string;
 }
 
-type DayType = "FULL_DAY" | "HALF_DAY" | "ABSENT";
+type DayType = "FULL_DAY" | "HALF_DAY" | "ABSENT" | "";
 
 interface Entry {
   employeeId: string;
@@ -40,6 +40,7 @@ export default function AttendancePage() {
   const [entries, setEntries] = useState<Record<string, Entry>>({});
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -52,7 +53,7 @@ export default function AttendancePage() {
       if (active) setProjectId(active.id);
       const init: Record<string, Entry> = {};
       emps.forEach((e) => {
-        init[e.id] = { employeeId: e.id, dayType: "FULL_DAY", overtimeHours: 0 };
+        init[e.id] = { employeeId: e.id, dayType: "", overtimeHours: 0 };
       });
       setEntries(init);
     });
@@ -63,11 +64,19 @@ export default function AttendancePage() {
     apiFetch<Array<{ employeeId: string; dayType: DayType; overtimeHours: number }>>(
       `/api/attendance?date=${date}`
     ).then((records) => {
-      setEntries((prev) => {
-        const next = { ...prev };
+      setIsLocked(records.length > 0);
+      setEntries(() => {
+
+        const next: Record<string, Entry> = {};
+
         employees.forEach((e) => {
-          if (!next[e.id]) next[e.id] = { employeeId: e.id, dayType: "ABSENT", overtimeHours: 0 };
+          next[e.id] = {
+            employeeId: e.id,
+            dayType: "",
+            overtimeHours: 0,
+          };
         });
+
         records.forEach((r) => {
           next[r.employeeId] = {
             employeeId: r.employeeId,
@@ -75,19 +84,33 @@ export default function AttendancePage() {
             overtimeHours: r.overtimeHours,
           };
         });
+
         return next;
       });
     });
   }, [date, employees.length]);
 
   const saveAll = async () => {
+
+    const unmarked = Object.values(entries).filter(
+      (e) => e.dayType === ""
+    );
+
+    if (unmarked.length > 0) {
+      alert(
+        `Please mark attendance for all ${unmarked.length} pending employees.`
+      );
+      return;
+    }
+
     setSaving(true);
     setMessage("");
+
     try {
       const payload = {
         date,
         projectId: projectId || null,
-        entries: Object.values(entries).filter((e) => e.dayType !== "ABSENT" || e.overtimeHours > 0),
+        entries: Object.values(entries),
       };
       if (payload.entries.length === 0) {
         payload.entries = Object.values(entries);
@@ -108,51 +131,27 @@ export default function AttendancePage() {
     setEntries((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
   };
 
-  const copyYesterday = async () => {
-    setMessage("");
-    try {
-      const res = await apiFetch<{ count: number }>("/api/attendance/copy-previous", {
-        method: "POST",
-        body: JSON.stringify({ date, projectId: projectId || null }),
-      });
-      setMessage(`${res.count} employees copied from yesterday.`);
-      apiFetch<Array<{ employeeId: string; dayType: DayType; overtimeHours: number }>>(
-        `/api/attendance?date=${date}`
-      ).then((records) => {
-        setEntries((prev) => {
-          const next = { ...prev };
-          records.forEach((r) => {
-            next[r.employeeId] = {
-              employeeId: r.employeeId,
-              dayType: r.dayType,
-              overtimeHours: r.overtimeHours,
-            };
-          });
-          return next;
-        });
-      });
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : "Copy failed");
-    }
-  };
-
   return (
     <div>
       <PageHeader
         title={t("dailyAttendance")}
         description={t("attendanceDesc")}
         action={
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={copyYesterday}>
-              <Copy className="h-4 w-4" /> {t("copyYesterday")}
-            </Button>
-            <Button onClick={saveAll} disabled={saving}>
-              <Save className="h-4 w-4" />
-              {saving ? t("saving") : t("saveAll")}
-            </Button>
-          </div>
+          <Button
+            onClick={saveAll}
+            disabled={saving || isLocked}
+          >
+            <Save className="h-4 w-4" />
+            {saving ? t("saving") : t("saveAll")}
+          </Button>
         }
       />
+
+      {isLocked && (
+        <div className="mb-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Attendance for this date has already been saved and is locked.
+        </div>
+      )}
 
       {message && (
         <div className="mb-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -196,7 +195,7 @@ export default function AttendancePage() {
             {employees.map((emp) => {
               const entry = entries[emp.id] || {
                 employeeId: emp.id,
-                dayType: "FULL_DAY" as DayType,
+                dayType: "" as DayType,
                 overtimeHours: 0,
               };
               return (
@@ -211,6 +210,7 @@ export default function AttendancePage() {
                         <button
                           key={dt}
                           type="button"
+                          disabled={isLocked}
                           onClick={() => setEntry(emp.id, { dayType: dt })}
                           className={`rounded px-2 py-1 text-xs font-medium ${entry.dayType === dt
                             ? dt === "ABSENT"
@@ -227,9 +227,10 @@ export default function AttendancePage() {
                   <td className="px-4 py-3">
                     <input
                       type="number"
+                      disabled={isLocked}
                       min="0"
                       step="0.5"
-                      value={entry.overtimeHours}
+                      value={entry.overtimeHours === 0 ? "" : entry.overtimeHours}
                       onChange={(e) =>
                         setEntry(emp.id, { overtimeHours: parseFloat(e.target.value) || 0 })
                       }
