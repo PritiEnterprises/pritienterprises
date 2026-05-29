@@ -127,6 +127,10 @@ model PayrollLine {
   otherDeductions   Float    @default(0)
   netPay            Float    @default(0)
   notes             String?
+  paymentStatus String   @default("UNPAID")
+  paidAt        DateTime?
+  paymentMethod String?
+  paymentNotes  String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

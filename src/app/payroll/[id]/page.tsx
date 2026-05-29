@@ -29,6 +29,10 @@ interface PayrollLine {
   grossEarnings: number;
   advancesDeducted: number;
   netPay: number;
+  paymentStatus: string;
+  paidAt?: string | null;
+  paymentMethod?: string | null;
+  paymentNotes?: string | null;
   dailyWageSnapshot: number;
   employee: { id: string; name: string; employeeCode: string; phone?: string | null };
 }
@@ -118,6 +122,28 @@ export default function PayrollDetailPage() {
     }
   };
 
+  const markPaid = async (lineId: string) => {
+    const paymentMethod = prompt(
+      "Payment Method (CASH / UPI / BANK)",
+      "CASH"
+    );
+
+    if (!paymentMethod) return;
+
+    try {
+      await apiFetch(`/api/payroll-line/${lineId}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          paymentMethod,
+        }),
+      });
+
+      load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed");
+    }
+  };
+
   if (!period) return <p className="text-slate-500">{t("loading")}</p>;
 
   const totals = period.payrollLines.reduce(
@@ -128,6 +154,22 @@ export default function PayrollDetailPage() {
     }),
     { gross: 0, advances: 0, net: 0 }
   );
+
+  const paidEmployees = period.payrollLines.filter(
+    (l) => l.paymentStatus === "PAID"
+  ).length;
+
+  const unpaidEmployees = period.payrollLines.filter(
+    (l) => l.paymentStatus !== "PAID"
+  ).length;
+
+  const paidAmount = period.payrollLines
+    .filter((l) => l.paymentStatus === "PAID")
+    .reduce((sum, l) => sum + l.netPay, 0);
+
+  const pendingAmount = period.payrollLines
+    .filter((l) => l.paymentStatus !== "PAID")
+    .reduce((sum, l) => sum + l.netPay, 0);
 
   return (
     <div>
@@ -186,7 +228,7 @@ export default function PayrollDetailPage() {
         </p>
       </Card>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid gap-4 sm:grid-cols-5">
         <Card>
           <p className="text-sm text-slate-500">{t("totalGross")}</p>
           <p className="text-xl font-bold">{formatCurrency(totals.gross)}</p>
@@ -198,6 +240,33 @@ export default function PayrollDetailPage() {
         <Card>
           <p className="text-sm text-slate-500">{t("netPayable")}</p>
           <p className="text-xl font-bold text-emerald-700">{formatCurrency(totals.net)}</p>
+        </Card>
+        <Card>
+          <p className="text-sm text-slate-500">
+            Paid Employees
+          </p>
+
+          <p className="text-xl font-bold text-emerald-700">
+            {paidEmployees}
+          </p>
+
+          <p className="text-xs text-slate-500">
+            {formatCurrency(paidAmount)}
+          </p>
+        </Card>
+
+        <Card>
+          <p className="text-sm text-slate-500">
+            Pending Employees
+          </p>
+
+          <p className="text-xl font-bold text-amber-700">
+            {unpaidEmployees}
+          </p>
+
+          <p className="text-xs text-slate-500">
+            {formatCurrency(pendingAmount)}
+          </p>
         </Card>
       </div>
 
@@ -211,11 +280,12 @@ export default function PayrollDetailPage() {
           t("gross"),
           t("advances"),
           t("netPay"),
+          "Payment",
           t("actions"),
         ]}
       >
         {period.payrollLines.length === 0 ? (
-          <EmptyRow colSpan={9} message={t("noRecords")} />
+          <EmptyRow colSpan={10} message={t("noRecords")} />
         ) : (
           period.payrollLines.map((l) => (
             <tr key={l.id}>
@@ -232,6 +302,42 @@ export default function PayrollDetailPage() {
               <td className="px-4 py-3 font-semibold">{formatCurrency(l.netPay)}</td>
               <td className="px-4 py-3">
                 <div className="flex flex-col gap-1">
+                  <Badge
+                    variant={
+                      l.paymentStatus === "PAID"
+                        ? "success"
+                        : "warning"
+                    }
+                  >
+                    {l.paymentStatus}
+                  </Badge>
+
+                  {l.paymentStatus === "PAID" && (
+                    <>
+                      <span className="text-xs text-slate-500">
+                        {l.paymentMethod}
+                      </span>
+
+                      <span className="text-xs text-slate-500">
+                        {l.paidAt
+                          ? formatDate(l.paidAt)
+                          : ""}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </td>
+              <td className="px-4 py-3">
+                <div className="flex flex-col gap-1">
+                  {l.paymentStatus !== "PAID" && (
+                    <button
+                      type="button"
+                      onClick={() => markPaid(l.id)}
+                      className="text-left text-xs text-emerald-700 hover:underline"
+                    >
+                      Mark Paid
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => downloadPdf(l.employee.employeeCode)}
