@@ -40,6 +40,7 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showInactive, setShowInactive] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -55,17 +56,29 @@ export default function EmployeesPage() {
     e.preventDefault();
     setError("");
     try {
-      await apiFetch("/api/employees", {
-        method: "POST",
-        body: JSON.stringify({
-          ...form,
-          dailyWage: parseFloat(form.dailyWage),
-          overtimeRate: parseFloat(form.overtimeRate) || 0,
-        }),
-      });
+      const payload = {
+        ...form,
+        dailyWage: parseFloat(form.dailyWage),
+        overtimeRate: parseFloat(form.overtimeRate) || 0,
+      };
+
+      if (editingId) {
+        await apiFetch(`/api/employees/${editingId}`, {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        });
+      } else {
+        await apiFetch("/api/employees", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+      }
+
+      setEditingId(null);
       setForm(emptyForm);
       setShowForm(false);
       load();
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     }
@@ -80,6 +93,21 @@ export default function EmployeesPage() {
   const reactivate = async (id: string) => {
     await apiFetch(`/api/employees/${id}`, { method: "PUT" });
     load();
+  };
+
+  const editEmployee = (emp: Employee) => {
+    setEditingId(emp.id);
+
+    setForm({
+      employeeCode: emp.employeeCode,
+      name: emp.name,
+      phone: emp.phone || "",
+      role: emp.role,
+      dailyWage: String(emp.dailyWage),
+      overtimeRate: String(emp.overtimeRate),
+    });
+
+    setShowForm(true);
   };
 
   const deleteEmployee = async (id: string) => {
@@ -114,7 +142,16 @@ export default function EmployeesPage() {
         title={t("employees")}
         description={t("employeesDesc")}
         action={
-          <Button onClick={() => setShowForm(!showForm)}>
+          <Button
+            onClick={() => {
+              setShowForm(!showForm);
+
+              if (showForm) {
+                setEditingId(null);
+                setForm(emptyForm);
+              }
+            }}
+          >
             {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             {showForm ? t("cancel") : t("addEmployee")}
           </Button>
@@ -137,16 +174,21 @@ export default function EmployeesPage() {
       </label>
 
       {showForm && (
-        <Card className="mb-6" title={t("addEmployee")}>
+        <Card
+          className="mb-6"
+          title={editingId ? "Edit Employee" : t("addEmployee")}
+        >
           <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <Input label={t("employeeCode")} name="employeeCode" required value={form.employeeCode} onChange={(e) => setForm({ ...form, employeeCode: e.target.value })} placeholder="EMP005" />
+            <Input label={t("employeeCode")} name="employeeCode" required disabled={!!editingId} value={form.employeeCode} onChange={(e) => setForm({ ...form, employeeCode: e.target.value })} placeholder="EMP005" />
             <Input label={t("fullName")} name="name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             <Input label={t("phone")} name="phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             <Input label={t("role")} name="role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} />
             <Input label={t("dailyWage")} name="dailyWage" type="number" required min="1" value={form.dailyWage} onChange={(e) => setForm({ ...form, dailyWage: e.target.value })} />
             <Input label={t("overtimeRate")} name="overtimeRate" type="number" min="0" value={form.overtimeRate} onChange={(e) => setForm({ ...form, overtimeRate: e.target.value })} placeholder={t("otAuto")} />
             <div className="md:col-span-2 xl:col-span-3">
-              <Button type="submit">{t("saveEmployee")}</Button>
+              <Button type="submit">
+                {editingId ? "Update Employee" : t("saveEmployee")}
+              </Button>
             </div>
           </form>
         </Card>
@@ -175,6 +217,12 @@ export default function EmployeesPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                    <button
+                      onClick={() => editEmployee(emp)}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Edit
+                    </button>
                     {emp.isActive ? (
                       <button
                         onClick={() => deactivate(emp.id)}

@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const schema = z.object({
-  employeeCode: z.string().min(1).optional(),
   name: z.string().min(1).optional(),
   phone: z.string().optional().nullable(),
   role: z.string().optional(),
@@ -37,11 +36,14 @@ export async function PATCH(
   try {
     const body = await request.json();
     const data = schema.parse(body);
+
     const employee = await prisma.employee.update({
       where: { id: params.id },
       data: {
         ...data,
-        joinDate: data.joinDate ? new Date(data.joinDate) : undefined,
+        joinDate: data.joinDate
+          ? new Date(data.joinDate)
+          : undefined,
       },
     });
     return NextResponse.json(employee);
