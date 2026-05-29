@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { apiFetch } from "@/lib/api";
 import { formatCurrency, formatDate, toDateInputValue } from "@/lib/utils";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useTranslation } from "@/lib/i18n/context";
 
 interface Employee {
@@ -34,6 +34,7 @@ export default function AdvancesPage() {
   const [advances, setAdvances] = useState<Advance[]>([]);
   const [filter, setFilter] = useState("PENDING");
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     employeeId: "",
     amount: "",
@@ -59,18 +60,74 @@ export default function AdvancesPage() {
     e.preventDefault();
     setError("");
     try {
-      await apiFetch("/api/advances", {
-        method: "POST",
-        body: JSON.stringify({
-          ...form,
-          amount: parseFloat(form.amount),
-        }),
+
+      const payload = {
+        ...form,
+        amount: parseFloat(form.amount),
+      };
+
+      if (editingId) {
+
+        await apiFetch(`/api/advances/${editingId}`, {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        });
+
+      } else {
+
+        await apiFetch("/api/advances", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+
+      }
+
+      setEditingId(null);
+
+      setForm({
+        employeeId: "",
+        amount: "",
+        date: toDateInputValue(new Date()),
+        notes: "",
       });
-      setForm({ employeeId: "", amount: "", date: toDateInputValue(new Date()), notes: "" });
+
       setShowForm(false);
+
       load();
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
+    }
+  };
+
+  const editAdvance = (a: Advance) => {
+    setEditingId(a.id);
+
+    setForm({
+      employeeId: a.employee.id,
+      amount: String(a.amount),
+      date: toDateInputValue(new Date(a.date)),
+      notes: a.notes || "",
+    });
+
+    setShowForm(true);
+  };
+
+  const deleteAdvance = async (id: string) => {
+    if (!confirm("Delete this advance?")) return;
+
+    try {
+      await apiFetch(`/api/advances/${id}`, {
+        method: "DELETE",
+      });
+
+      load();
+    } catch (err) {
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Delete failed"
+      );
     }
   };
 
@@ -86,9 +143,31 @@ export default function AdvancesPage() {
         title={t("employeeAdvances")}
         description={t("advancesDesc")}
         action={
-          <Button onClick={() => setShowForm(!showForm)}>
-            <Plus className="h-4 w-4" />
-            {t("recordAdvance")}
+          <Button
+            onClick={() => {
+              setShowForm(!showForm);
+
+              if (showForm) {
+
+                setEditingId(null);
+
+                setForm({
+                  employeeId: "",
+                  amount: "",
+                  date: toDateInputValue(new Date()),
+                  notes: "",
+                });
+
+              }
+            }}
+          >
+            {showForm ? (
+              <X className="h-4 w-4" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+
+            {showForm ? "Cancel" : "Record Advance"}
           </Button>
         }
       />
@@ -112,7 +191,14 @@ export default function AdvancesPage() {
       </div>
 
       {showForm && (
-        <Card className="mb-6" title="New Advance Payment">
+        <Card
+          className="mb-6"
+          title={
+            editingId
+              ? "Edit Advance"
+              : "New Advance Payment"
+          }
+        >
           <form
             onSubmit={submit}
             className="grid grid-cols-1 gap-4 md:grid-cols-2"
@@ -136,16 +222,27 @@ export default function AdvancesPage() {
             {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
             <div className="md:col-span-2">
               <Button type="submit">
-                Save Advance
+                {editingId
+                  ? "Update Advance"
+                  : "Save Advance"}
               </Button>
             </div>
           </form>
         </Card>
       )}
 
-      <DataTable headers={["Date", "Employee", "Amount", "Status", "Notes"]}>
+      <DataTable
+        headers={[
+          "Date",
+          "Employee",
+          "Amount",
+          "Status",
+          "Notes",
+          "Actions",
+        ]}
+      >
         {advances.length === 0 ? (
-          <EmptyRow colSpan={5} />
+          <EmptyRow colSpan={6} />
         ) : (
           advances.map((a) => (
             <tr key={a.id}>
@@ -156,6 +253,29 @@ export default function AdvancesPage() {
                 <Badge variant={statusVariant(a.status)}>{a.status}</Badge>
               </td>
               <td className="px-4 py-3 text-slate-500">{a.notes || "—"}</td>
+              <td className="px-4 py-3">
+                {a.status === "PENDING" ? (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => editAdvance(a)}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      onClick={() => deleteAdvance(a.id)}
+                      className="text-xs text-red-600 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-xs text-slate-400">
+                    —
+                  </span>
+                )}
+              </td>
             </tr>
           ))
         )}
