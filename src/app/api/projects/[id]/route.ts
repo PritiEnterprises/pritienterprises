@@ -5,7 +5,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const schema = z.object({
-  projectCode: z.string().min(1).optional(),
   name: z.string().min(1).optional(),
   siteAddress: z.string().optional().nullable(),
   builderName: z.string().optional(),
@@ -71,5 +70,46 @@ export async function PATCH(
     return NextResponse.json(project);
   } catch {
     return apiError("Failed to update project", 500);
+  }
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+
+    const project = await prisma.project.findUnique({
+      where: { id: params.id },
+      include: {
+        builderPayments: true,
+        attendances: true,
+      },
+    });
+
+    if (!project) {
+      return apiError("Project not found", 404);
+    }
+
+    if (
+      project.builderPayments.length > 0 ||
+      project.attendances.length > 0
+    ) {
+      return apiError(
+        "Cannot delete project with linked records",
+        400
+      );
+    }
+
+    await prisma.project.delete({
+      where: { id: params.id },
+    });
+
+    return NextResponse.json({
+      success: true,
+    });
+
+  } catch {
+    return apiError("Failed to delete project", 500);
   }
 }

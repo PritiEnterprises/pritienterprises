@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { apiFetch } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 
 interface Settlement {
   contractAmount: number;
@@ -32,6 +32,7 @@ interface Project {
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     projectCode: "",
     name: "",
@@ -47,15 +48,48 @@ export default function ProjectsPage() {
   useEffect(() => { load(); }, []);
 
   const submit = async (e: React.FormEvent) => {
+
     e.preventDefault();
-    await apiFetch("/api/projects", {
-      method: "POST",
-      body: JSON.stringify({
-        ...form,
-        contractAmount: parseFloat(form.contractAmount) || 0,
-      }),
+
+    const payload = {
+      ...form,
+      contractAmount:
+        parseFloat(form.contractAmount) || 0,
+    };
+
+    if (editingId) {
+
+      await apiFetch(
+        `/api/projects/${editingId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        }
+      );
+
+    } else {
+
+      await apiFetch("/api/projects", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+    }
+
+    setEditingId(null);
+
+    setForm({
+      projectCode: "",
+      name: "",
+      siteAddress: "",
+      builderName: "",
+      builderPhone: "",
+      contractAmount: "",
+      status: "ACTIVE",
     });
+
     setShowForm(false);
+
     load();
   };
 
@@ -75,6 +109,49 @@ export default function ProjectsPage() {
     }
   };
 
+  const deleteProject = async (id: string) => {
+
+    if (!confirm("Delete this project?")) {
+      return;
+    }
+
+    try {
+
+      await apiFetch(`/api/projects/${id}`, {
+        method: "DELETE",
+      });
+
+      load();
+
+    } catch (err) {
+
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Delete failed"
+      );
+
+    }
+  };
+
+  const editProject = (p: Project) => {
+
+    setEditingId(p.id);
+
+    setForm({
+      projectCode: p.projectCode,
+      name: p.name,
+      siteAddress: "",
+      builderName: p.builderName,
+      builderPhone: "",
+      contractAmount: String(p.contractAmount),
+      status: p.status,
+    });
+
+    setShowForm(true);
+
+  };
+
   const statusColor = (s: string) => {
     if (s === "ACTIVE") return "success";
     if (s === "COMPLETED") return "info";
@@ -88,31 +165,79 @@ export default function ProjectsPage() {
         title="Projects / Sites"
         description="Track construction sites, builder contracts, and payment settlement"
         action={
-          <Button onClick={() => setShowForm(!showForm)}>
-            <Plus className="h-4 w-4" /> Add Project
+          <Button
+            onClick={() => {
+
+              setShowForm(!showForm);
+
+              if (showForm) {
+
+                setEditingId(null);
+
+                setForm({
+                  projectCode: "",
+                  name: "",
+                  siteAddress: "",
+                  builderName: "",
+                  builderPhone: "",
+                  contractAmount: "",
+                  status: "ACTIVE",
+                });
+
+              }
+
+            }}
+          >
+            {showForm ? (
+              <X className="h-4 w-4" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+
+            {showForm ? "Cancel" : "Add Project"}
           </Button>
         }
       />
 
       {showForm && (
-        <Card className="mb-6" title="New Project">
+        <Card
+          className="mb-6"
+          title={
+            editingId
+              ? "Edit Project"
+              : "New Project"
+          }
+        >
           <form
             onSubmit={submit}
             className="grid grid-cols-1 gap-4 md:grid-cols-2"
           >
-            <Input label="Project Code" required value={form.projectCode} onChange={(e) => setForm({ ...form, projectCode: e.target.value })} />
+            <Input label="Project Code" required disabled={!!editingId} value={form.projectCode} onChange={(e) => setForm({ ...form, projectCode: e.target.value })} />
             <Input label="Project Name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             <Input label="Site Address" value={form.siteAddress} onChange={(e) => setForm({ ...form, siteAddress: e.target.value })} />
             <Input label="Builder Name" required value={form.builderName} onChange={(e) => setForm({ ...form, builderName: e.target.value })} />
             <Input label="Builder Phone" value={form.builderPhone} onChange={(e) => setForm({ ...form, builderPhone: e.target.value })} />
             <Input label="Contract Amount (INR)" type="number" value={form.contractAmount} onChange={(e) => setForm({ ...form, contractAmount: e.target.value })} />
-            <Button type="submit" className="sm:col-span-2">Save Project</Button>
+            <Button type="submit" className="sm:col-span-2">
+              {editingId
+                ? "Update Project"
+                : "Save Project"}
+            </Button>
           </form>
         </Card>
       )}
 
       <DataTable
-        headers={["Code", "Project", "Builder", "Contract", "Received", "Balance Due", "Status", ""]}
+        headers={[
+          "Code",
+          "Project",
+          "Builder",
+          "Contract",
+          "Received",
+          "Balance Due",
+          "Status",
+          "Actions",
+        ]}
       >
         {projects.length === 0 ? (
           <EmptyRow colSpan={8} />
@@ -130,6 +255,20 @@ export default function ProjectsPage() {
               </td>
               <td className="px-4 py-3">
                 <div className="flex flex-wrap items-center gap-3 text-xs">
+
+                  <button
+                    onClick={() => editProject(p)}
+                    className="text-blue-600 hover:underline"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    onClick={() => deleteProject(p.id)}
+                    className="text-red-600 hover:underline"
+                  >
+                    Delete
+                  </button>
 
                   <button
                     onClick={() =>
