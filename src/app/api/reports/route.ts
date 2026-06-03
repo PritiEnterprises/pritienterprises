@@ -30,19 +30,96 @@ export async function GET(request: NextRequest) {
       const halfDays = e.attendances.filter((a) => a.dayType === "HALF_DAY").length;
       const otHours = e.attendances.reduce((s, a) => s + a.overtimeHours, 0);
       const advances = e.advances.reduce((s, a) => s + a.amount, 0);
+      const absentDays = e.attendances.filter(
+        (a) => a.dayType === "ABSENT"
+      ).length;
+
+      const payableDays =
+        fullDays +
+        halfDays * 0.5 +
+        otHours / 8;
+
+      const grossPay =
+        payableDays * e.dailyWage;
+
+      const pendingAdvance =
+        advances;
+
+      const netPay = Math.max(
+        0,
+        grossPay - pendingAdvance
+      );
+
+      const carryForward = Math.max(
+        0,
+        pendingAdvance - grossPay
+      );
       return {
         id: e.id,
         name: e.name,
         employeeCode: e.employeeCode,
         dailyWage: e.dailyWage,
+
         fullDays,
         halfDays,
+        absentDays,
+
         overtimeHours: otHours,
-        totalAdvances: advances,
+
+        payableDays,
+
+        grossPay,
+
+        pendingAdvance,
+
+        netPay,
+
+        carryForward,
       };
     });
 
     return NextResponse.json({ ledger, from, to });
+  }
+
+  if (type === "pending-advances") {
+    const advances = await prisma.employeeAdvance.findMany({
+      where: {
+        status: "PENDING",
+      },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            name: true,
+            employeeCode: true,
+          },
+        },
+      },
+      orderBy: {
+        amount: "desc",
+      },
+    });
+
+    const grouped = new Map();
+
+    advances.forEach((a) => {
+      const key = a.employee.id;
+
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          employeeId: a.employee.id,
+          employeeName: a.employee.name,
+          employeeCode: a.employee.employeeCode,
+          pendingAdvance: 0,
+        });
+      }
+
+      grouped.get(key).pendingAdvance += a.amount;
+    });
+
+    return NextResponse.json({
+      pendingAdvances: Array.from(grouped.values()),
+    });
   }
 
   if (type === "builder-settlement") {
@@ -82,10 +159,10 @@ export async function GET(request: NextRequest) {
     pendingAdvances: pendingAdvances._sum.amount ?? 0,
     latestPayroll: latestPayroll
       ? {
-          label: latestPayroll.label,
-          status: latestPayroll.status,
-          totalNet: latestPayroll.payrollLines.reduce((s, l) => s + l.netPay, 0),
-        }
+        label: latestPayroll.label,
+        status: latestPayroll.status,
+        totalNet: latestPayroll.payrollLines.reduce((s, l) => s + l.netPay, 0),
+      }
       : null,
   });
 }
